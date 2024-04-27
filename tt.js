@@ -67,16 +67,16 @@ app.post('/download', async (req, res) => {
         // Mengunggah video ke Firebase Storage
         const uploadedUrl = await uploadToFirebaseStorage(filePath, generateRandomString() + '.mp4');
 
-        // Mengirim URL video yang berhasil diunggah ke bot Telegram
-        bot.telegram.sendMessage(chatId, `Video berhasil diunduh:\n${uploadedUrl}`);
+        // Mengirim video ke bot Telegram
+        bot.telegram.sendVideo(chatId, { source: fs.createReadStream(filePath) });
 
-        // Menghapus file setelah berhasil mengirimkan tautan
+        // Menghapus file setelah berhasil mengirim video
         fs.unlinkSync(filePath);
 
-        res.send(`Video berhasil diunduh dan tautan telah dikirimkan ke bot Telegram.`);
+        res.send(`Video berhasil diunduh dan dikirimkan ke bot Telegram.`);
     } catch (error) {
-        console.error('Gagal mengunduh dan mengirimkan video:', error);
-        res.status(500).send('Gagal mengunduh dan mengirimkan video');
+        console.error('Gagal mengunduh dan mengirim video:', error);
+        res.status(500).send('Gagal mengunduh dan mengirim video');
     }
 });
 
