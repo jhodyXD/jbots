@@ -12,10 +12,10 @@ const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
 app.use(bodyParser.json());
 
 // Inisialisasi Firebase Admin SDK
-const serviceAccount = require('jbots-8c508-firebase-adminsdk-zwj8j-73a7412c3f.json');
+const serviceAccount = require('./myAcc.json');
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket: 'jbots-8c508.appspot.com'
+    storageBucket: 'gs://jbots-8c508.appspot.com'
 });
 
 // Fungsi untuk mengunggah file ke Firebase Storage
@@ -68,7 +68,7 @@ app.post('/download', async (req, res) => {
         const uploadedUrl = await uploadToFirebaseStorage(filePath, generateRandomString() + '.mp4');
 
         // Mengirim URL video yang berhasil diunggah ke bot Telegram
-        await bot.sendMessage(chatId, `Video berhasil diunduh:\n${uploadedUrl}`);
+        bot.telegram.sendMessage(chatId, `Video berhasil diunduh:\n${uploadedUrl}`);
 
         // Menghapus file setelah berhasil mengirimkan tautan
         fs.unlinkSync(filePath);
