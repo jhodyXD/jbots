@@ -1,56 +1,25 @@
 const express = require('express');
-const https = require('https');
-const { Telegraf } = require('telegraf');
 const fetch = require('node-fetch');
-const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
+const firebase = require('./src/fb'); // Import konfigurasi Firebase
+const bot = require('./src/config'); // Import konfigurasi bot Telegram
 
 const app = express();
-const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
 
 app.use(bodyParser.json());
 
-// Inisialisasi Firebase Admin SDK
-const serviceAccount = require('./myAcc.json');
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: 'gs://jbots-8c508.appspot.com'
-});
+// Fungsi untuk mengunduh video dari Firebase Storage
+async function downloadVideoFromStorage(fileUrl) {
+    const bucket = firebase.storage().bucket();
+    const file = bucket.file(fileUrl);
 
-// Fungsi untuk mengunggah file ke Firebase Storage
-async function uploadToFirebaseStorage(videoUrl) {
-    const bucket = admin.storage().bucket();
-    const filename = `videos/${generateRandomString()}.mp4`;
-    const file = bucket.file(filename);
+    // Mengambil URL unduhan berkas dari Firebase Storage
+    const [url] = await file.getSignedUrl({ action: 'read', expires: '01-01-2500' });
 
-    return new Promise((resolve, reject) => {
-        https.get(videoUrl, (response) => {
-            const writeStream = file.createWriteStream({
-                metadata: {
-                    contentType: 'video/mp4'
-                }
-            });
-            response.pipe(writeStream);
-            writeStream.on('finish', () => {
-                resolve(`https://storage.googleapis.com/${bucket.name}/${filename}`);
-            });
-            writeStream.on('error', (error) => {
-                reject(error);
-            });
-        }).on('error', (error) => {
-            reject(error);
-        });
-    });
-}
-
-// Fungsi untuk menghasilkan string acak
-function generateRandomString(length = 10) {
-    const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let randomString = '';
-    for (let i = 0; i < length; i++) {
-        randomString += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return randomString;
+    // Mengunduh berkas menggunakan URL unduhan
+    const response = await fetch(url);
+    const videoBuffer = await response.buffer();
+    return videoBuffer;
 }
 
 app.post('/download', async (req, res) => {
@@ -58,11 +27,11 @@ app.post('/download', async (req, res) => {
         const videoUrl = req.body.videoUrl;
         const chatId = req.body.chatId;
 
-        // Mengunggah video ke Firebase Storage
-        const uploadedUrl = await uploadToFirebaseStorage(videoUrl);
+        // Mengunduh video dari Firebase Storage
+        const videoBuffer = await downloadVideoFromStorage(videoUrl);
 
-        // Mengirim URL video ke bot Telegram
-        bot.telegram.sendVideo(chatId, { source: uploadedUrl });
+        // Mengirim video ke bot Telegram
+        await bot.telegram.sendVideo(chatId, { source: videoBuffer });
 
         res.sendStatus(200); // Mengirim status 200 OK tanpa pesan apapun
     } catch (error) {
