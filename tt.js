@@ -6,12 +6,10 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 
 const app = express();
-const bot = new Telegraf('376942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
+const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
 
-// Middleware untuk mengurai body JSON dari permintaan HTTP
 app.use(bodyParser.json());
 
-// Fungsi untuk mengunduh video dari URL TikTok
 function downloadVideo(videoUrl) {
     return new Promise((resolve, reject) => {
         https.get(videoUrl, (response) => {
@@ -27,7 +25,6 @@ function downloadVideo(videoUrl) {
     });
 }
 
-// Fungsi untuk menghasilkan string acak
 function generateRandomString(length = 10) {
     const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     let randomString = '';
@@ -37,32 +34,35 @@ function generateRandomString(length = 10) {
     return randomString;
 }
 
-// Endpoint untuk menerima permintaan unduhan video TikTok dari bot Telegram
 app.post('/download', async (req, res) => {
     try {
-        const videoUrl = req.body.videoUrl; // Mendapatkan URL video dari permintaan
-        const filePath = await downloadVideo(videoUrl); // Mengunduh video dari URL
-        res.send(`Video berhasil diunduh: ${filePath}`);
+        const videoUrl = req.body.videoUrl;
+        const filePath = await downloadVideo(videoUrl);
+        
+        // Mengirim video yang berhasil diunduh ke bot Telegram
+        const chatId = req.body.chatId; // Mendapatkan ID obrolan dari permintaan
+        await bot.sendVideo(chatId, { source: filePath });
+
+        res.send(`Video berhasil diunduh dan dikirimkan ke bot Telegram.`);
     } catch (error) {
-        res.status(500).send('Gagal mengunduh video');
+        res.status(500).send('Gagal mengunduh dan mengirimkan video');
     }
 });
 
-// Inisialisasi bot Telegram
 bot.start((ctx) => ctx.reply('Selamat datang! Kirimkan URL video TikTok untuk mengunduh.'));
 
-// Mendengarkan pesan dari pengguna
 bot.on('message', async (ctx) => {
     const messageText = ctx.message.text;
+    const chatId = ctx.chat.id;
+    
     if (messageText.startsWith('https://vt.tiktok.com/')) {
         try {
-            // Mengirim permintaan unduhan video TikTok ke server backend
             const response = await fetch('http://localhost:3000/download', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ videoUrl: messageText }),
+                body: JSON.stringify({ videoUrl: messageText, chatId: chatId }),
             });
             const result = await response.text();
             ctx.reply(result);
@@ -75,7 +75,6 @@ bot.on('message', async (ctx) => {
     }
 });
 
-// Menjalankan server backend dan bot Telegram
 app.listen(3000, () => {
     console.log('Server backend berjalan di port 3000');
     bot.launch();
