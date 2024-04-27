@@ -2,9 +2,14 @@ const express = require('express');
 const https = require('https');
 const fs = require('fs');
 const { Telegraf } = require('telegraf');
+const fetch = require('node-fetch');
+const bodyParser = require('body-parser');
 
 const app = express();
-const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
+const bot = new Telegraf('YOUR_TELEGRAM_BOT_TOKEN');
+
+// Middleware untuk mengurai body JSON dari permintaan HTTP
+app.use(bodyParser.json());
 
 // Fungsi untuk mengunduh video dari URL TikTok
 function downloadVideo(videoUrl) {
