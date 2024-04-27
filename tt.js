@@ -1,6 +1,5 @@
 const express = require('express');
 const https = require('https');
-const fs = require('fs');
 const { Telegraf } = require('telegraf');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
@@ -19,31 +18,27 @@ admin.initializeApp({
 });
 
 // Fungsi untuk mengunggah file ke Firebase Storage
-async function uploadToFirebaseStorage(filePath, fileName) {
+async function uploadToFirebaseStorage(videoUrl) {
     const bucket = admin.storage().bucket();
-    const file = bucket.file(fileName);
+    const filename = `videos/${generateRandomString()}.mp4`;
+    const file = bucket.file(filename);
 
-    await file.save(fs.createReadStream(filePath), {
-        contentType: 'video/mp4',
-        public: true
-    });
-
-    const [url] = await file.getSignedUrl({ action: 'read', expires: '01-01-2500' });
-    return url;
-}
-
-// Fungsi untuk mengunduh video dari URL TikTok
-function downloadVideo(videoUrl) {
     return new Promise((resolve, reject) => {
         https.get(videoUrl, (response) => {
-            const filename = `src/${generateRandomString()}.mp4`;
-            const fileStream = fs.createWriteStream(filename);
-            response.pipe(fileStream);
-            fileStream.on('finish', () => {
-                fileStream.close(() => resolve(filename));
+            const writeStream = file.createWriteStream({
+                metadata: {
+                    contentType: 'video/mp4'
+                }
             });
-        }).on('error', (err) => {
-            reject(err);
+            response.pipe(writeStream);
+            writeStream.on('finish', () => {
+                resolve(`https://storage.googleapis.com/${bucket.name}/${filename}`);
+            });
+            writeStream.on('error', (error) => {
+                reject(error);
+            });
+        }).on('error', (error) => {
+            reject(error);
         });
     });
 }
@@ -62,18 +57,14 @@ app.post('/download', async (req, res) => {
     try {
         const videoUrl = req.body.videoUrl;
         const chatId = req.body.chatId;
-        const filePath = await downloadVideo(videoUrl);
-        
+
         // Mengunggah video ke Firebase Storage
-        const uploadedUrl = await uploadToFirebaseStorage(filePath, generateRandomString() + '.mp4');
+        const uploadedUrl = await uploadToFirebaseStorage(videoUrl);
 
-        // Mengirim video ke bot Telegram
-        bot.telegram.sendVideo(chatId, { source: fs.createReadStream(filePath) });
+        // Mengirim URL video ke bot Telegram
+        bot.telegram.sendVideo(chatId, { source: uploadedUrl });
 
-        // Menghapus file setelah berhasil mengirim video
-        fs.unlinkSync(filePath);
-
-        res.send(`Video berhasil diunduh dan dikirimkan ke bot Telegram.`);
+        res.sendStatus(200); // Mengirim status 200 OK tanpa pesan apapun
     } catch (error) {
         console.error('Gagal mengunduh dan mengirim video:', error);
         res.status(500).send('Gagal mengunduh dan mengirim video');
@@ -95,8 +86,7 @@ bot.on('message', async (ctx) => {
                 },
                 body: JSON.stringify({ videoUrl: messageText, chatId: chatId }),
             });
-            const result = await response.text();
-            ctx.reply(result);
+            ctx.reply('Video sedang diproses...');
         } catch (error) {
             console.error('Gagal mengirim permintaan unduhan:', error);
             ctx.reply('Gagal mengirim permintaan unduhan');
