@@ -22,16 +22,29 @@ async function downloadVideoFromStorage(fileUrl) {
     return videoBuffer;
 }
 
+// Fungsi untuk menghapus pesan
+async function deleteMessage(chatId, messageId) {
+    try {
+        await bot.telegram.deleteMessage(chatId, messageId);
+    } catch (error) {
+        console.error('Gagal menghapus pesan:', error);
+    }
+}
+
 app.post('/download', async (req, res) => {
     try {
         const videoUrl = req.body.videoUrl;
         const chatId = req.body.chatId;
+        const messageId = req.body.messageId; // Ambil ID pesan dari permintaan
 
         // Mengunduh video dari Firebase Storage
         const videoBuffer = await downloadVideoFromStorage(videoUrl);
 
         // Mengirim video ke bot Telegram
-        await bot.telegram.sendVideo(chatId, { source: videoBuffer });
+        const sentMessage = await bot.telegram.sendVideo(chatId, { source: videoBuffer });
+
+        // Menghapus pesan yang terkirim
+        await deleteMessage(chatId, messageId);
 
         res.sendStatus(200); // Mengirim status 200 OK tanpa pesan apapun
     } catch (error) {
@@ -45,6 +58,7 @@ bot.start((ctx) => ctx.reply('Selamat datang! Kirimkan URL video TikTok untuk me
 bot.on('message', async (ctx) => {
     const messageText = ctx.message.text;
     const chatId = ctx.chat.id;
+    const messageId = ctx.message.message_id; // Ambil ID pesan dari pesan yang diterima
     
     if (messageText.startsWith('https://vt.tiktok.com/')) {
         try {
@@ -53,7 +67,7 @@ bot.on('message', async (ctx) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ videoUrl: messageText, chatId: chatId }),
+                body: JSON.stringify({ videoUrl: messageText, chatId: chatId, messageId: messageId }), // Sertakan ID pesan dalam permintaan
             });
             ctx.reply('Video sedang diproses...');
         } catch (error) {
