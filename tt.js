@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 
 const app = express();
-const bot = new Telegraf('YOUR_TELEGRAM_BOT_TOKEN');
+const bot = new Telegraf('376942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
 
 // Middleware untuk mengurai body JSON dari permintaan HTTP
 app.use(bodyParser.json());
