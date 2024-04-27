@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const { Telegraf } = require('telegraf');
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
 
 const app = express();
@@ -10,6 +11,28 @@ const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
 
 app.use(bodyParser.json());
 
+// Inisialisasi Firebase Admin SDK
+const serviceAccount = require('jbots-8c508-firebase-adminsdk-zwj8j-73a7412c3f.json');
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: 'jbots-8c508.appspot.com'
+});
+
+// Fungsi untuk mengunggah file ke Firebase Storage
+async function uploadToFirebaseStorage(filePath, fileName) {
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(fileName);
+
+    await file.save(fs.createReadStream(filePath), {
+        contentType: 'video/mp4',
+        public: true
+    });
+
+    const [url] = await file.getSignedUrl({ action: 'read', expires: '01-01-2500' });
+    return url;
+}
+
+// Fungsi untuk mengunduh video dari URL TikTok
 function downloadVideo(videoUrl) {
     return new Promise((resolve, reject) => {
         https.get(videoUrl, (response) => {
@@ -25,6 +48,7 @@ function downloadVideo(videoUrl) {
     });
 }
 
+// Fungsi untuk menghasilkan string acak
 function generateRandomString(length = 10) {
     const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     let randomString = '';
@@ -37,14 +61,21 @@ function generateRandomString(length = 10) {
 app.post('/download', async (req, res) => {
     try {
         const videoUrl = req.body.videoUrl;
+        const chatId = req.body.chatId;
         const filePath = await downloadVideo(videoUrl);
         
-        // Mengirim video yang berhasil diunduh ke bot Telegram
-        const chatId = req.body.chatId; // Mendapatkan ID obrolan dari permintaan
-        await bot.sendVideo(chatId, { source: filePath });
+        // Mengunggah video ke Firebase Storage
+        const uploadedUrl = await uploadToFirebaseStorage(filePath, generateRandomString() + '.mp4');
 
-        res.send(`Video berhasil diunduh dan dikirimkan ke bot Telegram.`);
+        // Mengirim URL video yang berhasil diunggah ke bot Telegram
+        await bot.sendMessage(chatId, `Video berhasil diunduh:\n${uploadedUrl}`);
+
+        // Menghapus file setelah berhasil mengirimkan tautan
+        fs.unlinkSync(filePath);
+
+        res.send(`Video berhasil diunduh dan tautan telah dikirimkan ke bot Telegram.`);
     } catch (error) {
+        console.error('Gagal mengunduh dan mengirimkan video:', error);
         res.status(500).send('Gagal mengunduh dan mengirimkan video');
     }
 });
