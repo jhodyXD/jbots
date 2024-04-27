@@ -1,8 +1,8 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
-const firebase = require('./src/fb'); // Import konfigurasi Firebase
-const bot = require('./src/config'); // Import konfigurasi bot Telegram
+const firebase = require('./firebaseConfig'); // Import konfigurasi Firebase
+const bot = require('./telegramConfig'); // Import konfigurasi bot Telegram
 
 const app = express();
 
