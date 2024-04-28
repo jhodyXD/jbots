@@ -52,6 +52,11 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, 'Gagal mengirim tautan video TikTok. Periksa kembali URL yang Anda berikan.');
         }
     } else {
-        bot.sendMessage(chatId, 'Hanya tautan TikTok yang didukung. Silakan kirim tautan TikTok.');
+        // Tanggapi jika pesan tidak berisi tautan TikTok atau perintah /start
+        const errorMessage = `
+            Maaf, saya hanya dapat mengirimkan tautan video TikTok.
+            Kirimkan URL video TikTok yang ingin Anda unduh atau gunakan perintah /start untuk informasi lebih lanjut.
+        `;
+        bot.sendMessage(chatId, errorMessage);
     }
 });
