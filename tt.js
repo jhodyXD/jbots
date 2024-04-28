@@ -1,23 +1,21 @@
 const { Telegraf } = require('telegraf');
-const axios = require('axios');
 const moment = require('moment-timezone');
+const TikTokAPI = require('@tobyg74/tiktok-api-dl');
 
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
 const bot = new Telegraf(token);
 
-// Fungsi untuk mengambil informasi video TikTok dari URL
-async function getTikTokVideoInfo(videoUrl) {
+// Fungsi untuk mengunduh video TikTok
+async function downloadTikTokVideo(videoUrl) {
     try {
-        // Kirim permintaan HTTP untuk mendapatkan informasi video TikTok
-        const response = await axios.get(`https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl)}`);
-
-        // Ambil tautan video dari respons
-        const videoLink = response.data.video_url;
+        const downloader = new TikTokAPI();
+        const videoInfo = await downloader.getInfo(videoUrl);
+        const videoLink = videoInfo.videoUrl;
         return videoLink;
     } catch (error) {
-        console.error('Gagal mendapatkan informasi video TikTok:', error.message);
-        throw new Error('Gagal mendapatkan informasi video TikTok. Periksa kembali URL yang Anda berikan.');
+        console.error('Gagal mengunduh video TikTok:', error.message);
+        throw new Error('Gagal mengunduh video TikTok. Periksa kembali URL yang Anda berikan.');
     }
 }
 
@@ -48,7 +46,7 @@ bot.on('text', async (ctx) => {
     if (messageText.startsWith('https://www.tiktok.com/') || messageText.startsWith('https://vt.tiktok.com/') || messageText.startsWith('https://vm.tiktok.com/')) {
         try {
             // Dapatkan tautan video TikTok
-            const videoLink = await getTikTokVideoInfo(messageText);
+            const videoLink = await downloadTikTokVideo(messageText);
 
             // Kirim tautan video ke pengguna
             ctx.reply(videoLink);
