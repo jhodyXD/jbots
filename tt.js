@@ -1,21 +1,34 @@
 const TelegramBot = require('node-telegram-bot-api');
-const TikTokAPI = require('@tobyg74/tiktok-api-dl');
+const axios = require('axios');
+const fs = require('fs');
 
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
 const bot = new TelegramBot(token, { polling: true });
 
-// Inisialisasi objek TikTokAPI
-const tiktokApi = new TikTokAPI();
-
 // Fungsi untuk mengunduh video TikTok
 async function downloadTikTokVideo(chatId, videoUrl) {
     try {
-        // Unduh video menggunakan URL TikTok
-        const videoBuffer = await tiktokApi.downloadVideo(videoUrl);
+        // Kirim permintaan HTTP untuk mengunduh video
+        const response = await axios.get(videoUrl, { responseType: 'stream' });
 
-        // Kirim video ke pengguna
-        bot.sendVideo(chatId, videoBuffer);
+        // Simpan video ke file
+        const fileName = 'tiktok_video.mp4';
+        const writer = fs.createWriteStream(fileName);
+        response.data.pipe(writer);
+
+        writer.on('finish', () => {
+            // Kirim video ke pengguna setelah selesai diunduh
+            bot.sendVideo(chatId, fileName).then(() => {
+                // Hapus file setelah dikirim
+                fs.unlinkSync(fileName);
+            });
+        });
+
+        writer.on('error', (err) => {
+            console.error('Gagal menyimpan video:', err);
+            bot.sendMessage(chatId, 'Gagal mengunduh video TikTok. Silakan coba lagi.');
+        });
     } catch (error) {
         console.error('Gagal mengunduh video TikTok:', error.message);
         bot.sendMessage(chatId, 'Gagal mengunduh video TikTok. Periksa kembali URL yang Anda berikan.');
