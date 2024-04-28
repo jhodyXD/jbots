@@ -2,6 +2,10 @@ const { Telegraf } = require('telegraf');
 const moment = require('moment-timezone');
 const axios = require('axios');
 
+// URL dan API SSSTik
+const _ssstikurl = "https://ssstik.io";
+const _ssstikapi = `${_ssstikurl}/abc?url=dl`;
+
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
 const bot = new Telegraf(token);
@@ -28,15 +32,20 @@ bot.on('text', async (ctx) => {
     if (tiktokUrls.length === 0) {
         ctx.reply('Tidak ada URL video TikTok yang ditemukan dalam pesan Anda.');
     } else {
-        try {
-            for (const url of tiktokUrls) {
+        for (const url of tiktokUrls) {
+            try {
+                // Kirim pesan loading
+                const loadingMessage = await ctx.reply('Sedang mengunduh video TikTok... ⏳');
                 // Lakukan pemrosesan unduhan video TikTok untuk setiap URL yang ditemukan
-                const videoLink = url; // Ganti dengan pemrosesan unduhan yang sesuai
-                ctx.reply(videoLink);
+                const videoLink = await downloadTikTokVideo(url);
+                // Hapus pesan loading
+                await ctx.telegram.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
+                // Kirim video kepada pengguna
+                ctx.replyWithVideo({ source: videoLink });
+            } catch (error) {
+                console.error('Gagal mengunduh video TikTok:', error.message);
+                ctx.reply('Gagal mengunduh video TikTok. Mohon coba lagi.');
             }
-        } catch (error) {
-            console.error('Gagal mengunduh video TikTok:', error.message);
-            ctx.reply('Gagal mengunduh video TikTok. Mohon coba lagi.');
         }
     }
 });
@@ -50,6 +59,16 @@ function getFormattedTime() {
 function extractTikTokUrls(text) {
     const urlRegex = /(https?:\/\/(?:www\.)?(?:vt|vm|www)\.tiktok\.com\/[\w-]+)/gi;
     return text.match(urlRegex) || [];
+}
+
+// Fungsi untuk mengunduh video TikTok menggunakan API SSSTik
+async function downloadTikTokVideo(url) {
+    try {
+        const response = await axios.get(`${_ssstikapi}&url=${url}`);
+        return response.data;
+    } catch (error) {
+        throw new Error('Gagal mengunduh video TikTok. Silakan coba lagi.');
+    }
 }
 
 // Jalankan bot
