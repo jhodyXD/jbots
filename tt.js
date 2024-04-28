@@ -17,7 +17,7 @@ async function getTikTokVideoUrl(url) {
 
   try {
     const response = await axios.request(options);
-    return response.data.videoLinks.download;
+    return response.data;
   } catch (error) {
     console.error(error);
     throw new Error('Failed to fetch TikTok video URL');
@@ -26,7 +26,7 @@ async function getTikTokVideoUrl(url) {
 
 // Fungsi untuk mendapatkan deskripsi dan author
 function getStartMessage() {
-  return `Halo! Saya adalah bot TikTok. Kirimkan tautan video TikTok dari vt.tiktok.com, www.tiktok.com, atau vm.tiktok.com untuk mendapatkan tautan unduhnya.`;
+  return `Halo! Saya adalah bot TikTok. Kirimkan tautan video TikTok dari vt.tiktok.com, www.tiktok.com, atau vm.tiktok.com untuk mendapatkan informasi lebih lanjut.`;
 }
 
 // Fungsi utama bot Telegram
@@ -39,10 +39,15 @@ function startTelegramBot() {
     const text = ctx.message.text;
     if (text.includes('vt.tiktok.com') || text.includes('www.tiktok.com') || text.includes('vm.tiktok.com')) {
       try {
-        const videoUrl = await getTikTokVideoUrl(text);
-        ctx.reply(`Tautan unduh video TikTok: ${videoUrl}`);
+        const videoInfo = await getTikTokVideoUrl(text);
+        if (videoInfo.status === 'success') {
+          const { author, description } = videoInfo;
+          ctx.reply(`Author: ${author}\nDescription: ${description}`);
+        } else {
+          ctx.reply('Maaf, tidak dapat menemukan informasi video TikTok.');
+        }
       } catch (error) {
-        ctx.reply('Maaf, terjadi kesalahan saat mengambil tautan video TikTok.');
+        ctx.reply('Maaf, terjadi kesalahan saat mengambil informasi video TikTok.');
         console.error(error);
       }
     } else {
