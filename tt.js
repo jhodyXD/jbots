@@ -65,7 +65,7 @@ function extractTikTokUrls(text) {
 // Fungsi untuk mengunduh video TikTok menggunakan @tobyg74/tiktok-api-dl
 async function downloadTikTokVideo(url) {
     try {
-        const result = await Tiktok.Downloader(url, { version: "v1" });
+        const result = await Tiktok.Downloader(url, { version: "v2" });
         if (result && result.video) {
             return result.video;
         } else {
