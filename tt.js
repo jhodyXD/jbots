@@ -1,48 +1,56 @@
+const express = require('express');
 const { Telegraf } = require('telegraf');
 const fetch = require('node-fetch');
-const fs = require('fs');
-const { promisify } = require('util');
-const { getIdVideo } = require('./tiktokHelper'); // Modul untuk mendapatkan ID video TikTok
 
+const app = express();
 const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
 
-// Fungsi untuk mengunduh video dari URL TikTok
-const downloadVideo = async (videoUrl) => {
-    const response = await fetch(videoUrl);
-    const fileStream = fs.createWriteStream('downloaded_video.mp4');
-    await new Promise((resolve, reject) => {
-        response.body.pipe(fileStream);
-        response.body.on('error', (err) => {
-            reject(err);
-        });
-        fileStream.on('finish', function () {
-            resolve();
-        });
-    });
-};
+bot.start((ctx) => ctx.reply('Selamat datang! Kirimkan link TikTok untuk mengunduh.'));
+bot.help((ctx) => ctx.reply('Kirimkan link TikTok untuk mengunduh.'));
 
-// Handler untuk perintah /download
-bot.command('download', async (ctx) => {
-    const messageText = ctx.message.text;
-    const videoUrl = messageText.split(' ')[1]; // Mengambil URL video dari pesan
-    if (!videoUrl || !videoUrl.startsWith('https://www.tiktok.com/')) {
-        ctx.reply('Mohon kirimkan URL video TikTok yang valid.');
-        return;
-    }
-    try {
-        const idVideo = await getIdVideo(videoUrl); // Mendapatkan ID video TikTok
-        const videoDownloadUrl = `https://api.tiktok.com/video/download/?video_id=${idVideo}&iid=7318518857994389254&device_id=7318517321748022790&channel=googleplay&app_name=musical_ly&version_code=300904&device_platform=android&device_type=ASUS_Z01QD&version=9`; // URL unduhan video
-        await downloadVideo(videoDownloadUrl); // Unduh video dari URL
-        const videoStream = fs.createReadStream('downloaded_video.mp4'); // Buka file video yang diunduh
-        await ctx.replyWithVideo({ source: videoStream }); // Kirim video ke pengguna
-        // Hapus file video setelah dikirim
-        const unlink = promisify(fs.unlink);
-        await unlink('downloaded_video.mp4');
-    } catch (error) {
-        console.error('Error:', error);
-        ctx.reply('Gagal mengunduh atau mengirim video.');
+bot.on('text', async (ctx) => {
+    const messageText = ctx.message.text.trim();
+    
+    // Regex untuk mendeteksi link TikTok
+    const tiktokRegex = /(vt|vm)\.tiktok\.com|www\.tiktok\.com/;
+    
+    if (tiktokRegex.test(messageText)) {
+        // Kirim link ke API untuk pengunduhan
+        try {
+            const response = await fetch('https://tdl.besecure.eu.org/api/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: messageText,
+                    nocache: true, // Sesuaikan sesuai kebutuhan
+                    type: 'Provider', // Sesuaikan sesuai kebutuhan
+                    rotateOnError: false, // Sesuaikan sesuai kebutuhan
+                }),
+            });
+            const data = await response.json();
+            // Tampilkan status pengunduhan
+            ctx.reply(data.success ? 'Video berhasil diunduh!' : 'Gagal mengunduh video.');
+        } catch (error) {
+            console.error('Gagal mengirim permintaan unduhan:', error);
+            ctx.reply('Gagal mengirim permintaan unduhan.');
+        }
+    } else {
+        ctx.reply('Mohon kirimkan link TikTok yang valid.');
     }
 });
 
-// Jalankan bot
 bot.launch();
+
+// Endpoint untuk menerima pesan dari pengguna
+app.post('/telegram/message', (req, res) => {
+    bot.handleUpdate(req.body);
+    res.sendStatus(200);
+});
+
+// Port untuk server Express
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server Express berjalan di port ${PORT}`);
+});
