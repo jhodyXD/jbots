@@ -1,23 +1,10 @@
 const { Telegraf } = require('telegraf');
 const moment = require('moment-timezone');
-const TikTokAPI = require('@tobyg74/tiktok-api-dl');
+const TikTokScraper = require('tiktok-scraper');
 
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
 const bot = new Telegraf(token);
-
-// Fungsi untuk mengunduh video TikTok
-async function downloadTikTokVideo(videoUrl) {
-    try {
-        const downloader = new TikTokAPI();
-        const videoInfo = await downloader.getInfo(videoUrl);
-        const videoLink = videoInfo.videoUrl;
-        return videoLink;
-    } catch (error) {
-        console.error('Gagal mengunduh video TikTok:', error.message);
-        throw new Error('Gagal mengunduh video TikTok. Periksa kembali URL yang Anda berikan.');
-    }
-}
 
 // Middleware untuk menangani perintah /start
 bot.start((ctx) => {
@@ -63,6 +50,18 @@ bot.on('text', async (ctx) => {
         ctx.reply(errorMessage);
     }
 });
+
+// Fungsi untuk mengunduh video TikTok
+async function downloadTikTokVideo(videoUrl) {
+    try {
+        const videoMeta = await TikTokScraper.getVideoMeta(videoUrl);
+        const videoLink = videoMeta.collector[0].videoUrl;
+        return videoLink;
+    } catch (error) {
+        console.error('Gagal mengunduh video TikTok:', error.message);
+        throw new Error('Gagal mengunduh video TikTok. Periksa kembali URL yang Anda berikan.');
+    }
+}
 
 // Fungsi untuk mendapatkan waktu terformat di zona Asia/Jakarta
 function getFormattedTime() {
