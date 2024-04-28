@@ -34,14 +34,18 @@ bot.on('text', async (ctx) => {
                 const loadingMessage = await ctx.reply('Sedang mengunduh video TikTok... ⏳');
                 // Lakukan pemrosesan unduhan video TikTok untuk setiap URL yang ditemukan
                 const videoLink = await downloadTikTokVideo(url);
-                // Hapus pesan loading
-                await ctx.telegram.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
-                // Kirim video kepada pengguna
-                ctx.replyWithVideo({ source: videoLink });
+                if (videoLink) {
+                    // Hapus pesan loading
+                    await ctx.telegram.deleteMessage(loadingMessage.chat.id, loadingMessage.message_id);
+                    // Kirim video kepada pengguna
+                    ctx.replyWithVideo({ source: videoLink });
+                } else {
+                    throw new Error('Tautan video tidak valid atau tidak ditemukan.');
+                }
             } catch (error) {
                 console.error('Gagal mengunduh video TikTok:', error.message);
-                // Kirim pesan error kepada pengguna dalam bentuk JSON
-                ctx.reply(JSON.stringify({ error: 'Gagal mengunduh video TikTok. Mohon coba lagi.' }));
+                // Kirim pesan error kepada pengguna dalam bentuk teks
+                ctx.reply('Gagal mengunduh video TikTok. Mohon coba lagi.');
             }
         }
     }
@@ -62,9 +66,10 @@ function extractTikTokUrls(text) {
 async function downloadTikTokVideo(url) {
     try {
         const result = await Tiktok.Downloader(url, { version: "v1" });
-        return result.video;
+        return result.video || null;
     } catch (error) {
-        throw new Error('Gagal mengunduh video TikTok. Silakan coba lagi.');
+        console.error('Gagal mengunduh video TikTok:', error.message);
+        return null;
     }
 }
 
