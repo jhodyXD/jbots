@@ -1,18 +1,6 @@
 const { Telegraf } = require('telegraf');
+const Tiktok = require("@tobyg74/tiktok-api-dl");
 const moment = require('moment-timezone');
-const axios = require('axios');
-
-// URL dan API TikTok
-const _tiktokurl = "https://www.tiktok.com";
-const _tiktokapi = (params) => `https://api.tiktokv.com/aweme/v1/feed/?${params}`;
-
-// URL dan API SSSTik
-const _ssstikurl = "https://ssstik.io";
-const _ssstikapi = `${_ssstikurl}/abc?url=dl`;
-
-// URL dan API Musicaldown
-const _musicaldownurl = "https://musicaldown.com";
-const _musicaldownapi = `${_musicaldownurl}/download`;
 
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
@@ -70,11 +58,11 @@ function extractTikTokUrls(text) {
     return text.match(urlRegex) || [];
 }
 
-// Fungsi untuk mengunduh video TikTok menggunakan API SSSTik
+// Fungsi untuk mengunduh video TikTok menggunakan @tobyg74/tiktok-api-dl
 async function downloadTikTokVideo(url) {
     try {
-        const response = await axios.get(`${_ssstikapi}&url=${url}`);
-        return response.data;
+        const result = await Tiktok.Downloader(url, { version: "v1" });
+        return result.video;
     } catch (error) {
         throw new Error('Gagal mengunduh video TikTok. Silakan coba lagi.');
     }
