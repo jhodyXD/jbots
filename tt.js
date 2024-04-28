@@ -2,9 +2,17 @@ const { Telegraf } = require('telegraf');
 const moment = require('moment-timezone');
 const axios = require('axios');
 
+// URL dan API TikTok
+const _tiktokurl = "https://www.tiktok.com";
+const _tiktokapi = (params) => `https://api.tiktokv.com/aweme/v1/feed/?${params}`;
+
 // URL dan API SSSTik
 const _ssstikurl = "https://ssstik.io";
 const _ssstikapi = `${_ssstikurl}/abc?url=dl`;
+
+// URL dan API Musicaldown
+const _musicaldownurl = "https://musicaldown.com";
+const _musicaldownapi = `${_musicaldownurl}/download`;
 
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
@@ -44,7 +52,8 @@ bot.on('text', async (ctx) => {
                 ctx.replyWithVideo({ source: videoLink });
             } catch (error) {
                 console.error('Gagal mengunduh video TikTok:', error.message);
-                ctx.reply('Gagal mengunduh video TikTok. Mohon coba lagi.');
+                // Kirim pesan error kepada pengguna dalam bentuk JSON
+                ctx.reply(JSON.stringify({ error: 'Gagal mengunduh video TikTok. Mohon coba lagi.' }));
             }
         }
     }
