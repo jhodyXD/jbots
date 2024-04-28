@@ -66,10 +66,14 @@ function extractTikTokUrls(text) {
 async function downloadTikTokVideo(url) {
     try {
         const result = await Tiktok.Downloader(url, { version: "v1" });
-        return result.video || null;
+        if (result && result.video) {
+            return result.video;
+        } else {
+            throw new Error('Tautan video tidak valid atau tidak ditemukan.');
+        }
     } catch (error) {
         console.error('Gagal mengunduh video TikTok:', error.message);
-        return null;
+        throw new Error('Gagal mengunduh video TikTok. Silakan coba lagi.');
     }
 }
 
