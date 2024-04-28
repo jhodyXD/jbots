@@ -31,7 +31,7 @@ bot.command('download', async (ctx) => {
     }
     try {
         const idVideo = await getIdVideo(videoUrl); // Mendapatkan ID video TikTok
-        const videoDownloadUrl = `https://api.tiktok.com/video/download/?video_id=${idVideo}`; // URL unduhan video
+        const videoDownloadUrl = `https://api.tiktok.com/video/download/?video_id=${idVideo}&iid=7318518857994389254&device_id=7318517321748022790&channel=googleplay&app_name=musical_ly&version_code=300904&device_platform=android&device_type=ASUS_Z01QD&version=9`; // URL unduhan video
         await downloadVideo(videoDownloadUrl); // Unduh video dari URL
         const videoStream = fs.createReadStream('downloaded_video.mp4'); // Buka file video yang diunduh
         await ctx.replyWithVideo({ source: videoStream }); // Kirim video ke pengguna
