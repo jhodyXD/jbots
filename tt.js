@@ -1,5 +1,6 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
+const moment = require('moment-timezone');
 
 // Inisialisasi bot Telegram dengan token
 const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
@@ -20,27 +21,31 @@ async function getTikTokVideoInfo(videoUrl) {
     }
 }
 
+// Middleware untuk menangani perintah /start
+bot.start((ctx) => {
+    // Kirim pesan selamat datang dan deskripsi penggunaan bot
+    const welcomeMessage = `
+        Selamat datang di bot TikTok Downloader! 🎉
+        
+        Untuk menggunakan bot ini, cukup kirimkan URL video TikTok yang ingin Anda unduh.
+        Bot ini mendukung URL yang dimulai dengan:
+        - https://www.tiktok.com/
+        - https://vt.tiktok.com/
+        - https://vm.tiktok.com/
+        
+        Kirimkan URL video TikTok dan saya akan memberikan tautan untuk mengunduhnya.
+
+        Bot dibuat oleh Jhody Pedia.
+        ${getFormattedTime()}
+    `;
+    ctx.reply(welcomeMessage);
+});
+
 // Middleware untuk menangani pesan teks
 bot.on('text', async (ctx) => {
     const messageText = ctx.message.text;
-    const chatId = ctx.chat.id;
 
-    // Cek jika pesan berisi perintah /start
-    if (messageText === '/start') {
-        // Kirim pesan selamat datang dan deskripsi penggunaan bot
-        const welcomeMessage = `
-            Selamat datang di bot TikTok Downloader! 🎉
-            
-            Untuk menggunakan bot ini, cukup kirimkan URL video TikTok yang ingin Anda unduh.
-            Bot ini mendukung URL yang dimulai dengan:
-            - https://www.tiktok.com/
-            - https://vt.tiktok.com/
-            - https://vm.tiktok.com/
-            
-            Kirimkan URL video TikTok dan saya akan memberikan tautan untuk mengunduhnya.
-        `;
-        ctx.reply(welcomeMessage);
-    } else if (messageText.startsWith('https://www.tiktok.com/') || messageText.startsWith('https://vt.tiktok.com/') || messageText.startsWith('https://vm.tiktok.com/')) {
+    if (messageText.startsWith('https://www.tiktok.com/') || messageText.startsWith('https://vt.tiktok.com/') || messageText.startsWith('https://vm.tiktok.com/')) {
         try {
             // Dapatkan tautan video TikTok
             const videoLink = await getTikTokVideoInfo(messageText);
@@ -52,14 +57,19 @@ bot.on('text', async (ctx) => {
             ctx.reply('Gagal mengirim tautan video TikTok. Periksa kembali URL yang Anda berikan.');
         }
     } else {
-        // Tanggapi jika pesan tidak berisi tautan TikTok atau perintah /start
+        // Tanggapi jika pesan tidak berisi tautan TikTok
         const errorMessage = `
             Maaf, saya hanya dapat mengirimkan tautan video TikTok.
-            Kirimkan URL video TikTok yang ingin Anda unduh atau gunakan perintah /start untuk informasi lebih lanjut.
+            Kirimkan URL video TikTok yang ingin Anda unduh.
         `;
         ctx.reply(errorMessage);
     }
 });
 
-// Mulai bot
+// Fungsi untuk mendapatkan waktu terformat di zona Asia/Jakarta
+function getFormattedTime() {
+    return moment.tz('Asia/Jakarta').format('DD-MM-YYYY HH:mm:ss');
+}
+
+// Jalankan bot
 bot.launch();
