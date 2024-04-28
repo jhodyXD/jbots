@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const TikTokAPI = require('@tobyg74/tiktok-api-dl');
 
 // Inisialisasi bot Telegram dengan token
-const token = 'YOUR_TELEGRAM_BOT_TOKEN'; // Ganti dengan token bot Anda
+const token = '6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI'; // Ganti dengan token bot Anda
 const bot = new TelegramBot(token, { polling: true });
 
 // Inisialisasi objek TikTokAPI
