@@ -1,56 +1,53 @@
-const express = require('express');
-const { Telegraf } = require('telegraf');
-const fetch = require('node-fetch');
+const TelegramBot = require('node-telegram-bot-api');
+const TikTokAPI = require('@tobyg74/tiktok-api-dl');
 
-const app = express();
-const bot = new Telegraf('6942840133:AAFUiwpYIsRDoiPnkHUCHw6adegmurwqUbI');
+// Inisialisasi bot Telegram dengan token
+const token = 'YOUR_TELEGRAM_BOT_TOKEN'; // Ganti dengan token bot Anda
+const bot = new TelegramBot(token, { polling: true });
 
-bot.start((ctx) => ctx.reply('Selamat datang! Kirimkan link TikTok untuk mengunduh.'));
-bot.help((ctx) => ctx.reply('Kirimkan link TikTok untuk mengunduh.'));
+// Inisialisasi objek TikTokAPI
+const tiktokApi = new TikTokAPI();
 
-bot.on('text', async (ctx) => {
-    const messageText = ctx.message.text.trim();
-    
-    // Regex untuk mendeteksi link TikTok
-    const tiktokRegex = /(vt|vm)\.tiktok\.com|www\.tiktok\.com/;
-    
-    if (tiktokRegex.test(messageText)) {
-        // Kirim link ke API untuk pengunduhan
-        try {
-            const response = await fetch('https://tdl.besecure.eu.org/api/download', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    url: messageText,
-                    nocache: true, // Sesuaikan sesuai kebutuhan
-                    type: 'Provider', // Sesuaikan sesuai kebutuhan
-                    rotateOnError: false, // Sesuaikan sesuai kebutuhan
-                }),
-            });
-            const data = await response.json();
-            // Tampilkan status pengunduhan
-            ctx.reply(data.success ? 'Video berhasil diunduh!' : 'Gagal mengunduh video.');
-        } catch (error) {
-            console.error('Gagal mengirim permintaan unduhan:', error);
-            ctx.reply('Gagal mengirim permintaan unduhan.');
-        }
-    } else {
-        ctx.reply('Mohon kirimkan link TikTok yang valid.');
+// Fungsi untuk mengunduh video TikTok
+async function downloadTikTokVideo(chatId, videoUrl) {
+    try {
+        // Unduh video menggunakan URL TikTok
+        const videoBuffer = await tiktokApi.downloadVideo(videoUrl);
+
+        // Kirim video ke pengguna
+        bot.sendVideo(chatId, videoBuffer);
+    } catch (error) {
+        console.error('Gagal mengunduh video TikTok:', error.message);
+        bot.sendMessage(chatId, 'Gagal mengunduh video TikTok. Periksa kembali URL yang Anda berikan.');
     }
-});
+}
 
-bot.launch();
+// Event listener ketika bot menerima pesan
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const messageText = msg.text;
 
-// Endpoint untuk menerima pesan dari pengguna
-app.post('/telegram/message', (req, res) => {
-    bot.handleUpdate(req.body);
-    res.sendStatus(200);
-});
-
-// Port untuk server Express
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server Express berjalan di port ${PORT}`);
+    // Cek jika pesan berisi perintah /start
+    if (messageText === '/start') {
+        // Kirim pesan selamat datang dan deskripsi penggunaan bot
+        const welcomeMessage = `
+            Selamat datang di bot TikTok Downloader! 🎉
+            
+            Bot ini dibuat oleh Jhody Pedia.
+            Kunjungi website kami untuk informasi lebih lanjut: [Tukukripto](https://tukukripto.my.id/)
+            
+            Untuk menggunakan bot ini, cukup kirimkan URL video TikTok yang ingin Anda unduh.
+            Bot ini mendukung URL yang dimulai dengan:
+            - https://www.tiktok.com/
+            - https://vt.tiktok.com/
+            - https://vm.tiktok.com/
+            
+            Kirimkan URL video TikTok dan saya akan mengunduhnya untuk Anda.
+        `;
+        bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+    } else if (messageText && (messageText.startsWith('https://www.tiktok.com/') || messageText.startsWith('https://vt.tiktok.com/') || messageText.startsWith('https://vm.tiktok.com/'))) {
+        downloadTikTokVideo(chatId, messageText);
+    } else {
+        bot.sendMessage(chatId, 'Hanya tautan TikTok yang didukung. Silakan kirim tautan TikTok.');
+    }
 });
